@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  employee
+  reviewer
+  admin
+}
+
+enum AccountStatus {
+  active
+  inactive
+}
+
+enum RequestStatus {
+  draft
+  submitted
+  approved
+  rejected
+  paid
+}
+
+enum ReviewActionType {
+  submitted
+  approved
+  rejected
+  paid
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  passwordHash  String        @map("password_hash")
+  role          Role
+  accountStatus AccountStatus @default(active) @map("account_status")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  expenseRequests ExpenseRequest[] @relation("SubmitterRequests")
+  reviewActions   ReviewAction[]   @relation("ReviewerActions")
+  notifications   Notification[]
+  auditsReceived  UserAudit[]      @relation("UserAuditTarget")
+  auditsPerformed UserAudit[]      @relation("UserAuditActor")
+
+  @@map("users")
+}
+
+model ExpenseRequest {
+  id             String        @id @default(cuid())
+  submitterId    String        @map("submitter_id")
+  title          String
+  description    String
+  category       String
+  expenseDate    DateTime      @map("expense_date") @db.Date
+  totalAmount    Decimal       @map("total_amount") @db.Decimal(10, 2)
+  currency       String        @default("USD")
+  receiptUrl     String?       @map("receipt_url")
+  receiptName    String?       @map("receipt_name")
+  receiptType    String?       @map("receipt_type")
+  status         RequestStatus @default(draft)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  submitter     User           @relation("SubmitterRequests", fields: [submitterId], references: [id])
+  reviewActions ReviewAction[]
+  notifications Notification[]
+
+  @@map("expense_requests")
+}
+
+// Audit trail: every status transition on a request, not just reviewer decisions
+// (e.g. draft -> submitted is logged too, with reviewerId null).
+model ReviewAction {
+  id             String           @id @default(cuid())
+  requestId      String           @map("request_id")
+  reviewerId     String?          @map("reviewer_id")
+  action         ReviewActionType
+  comment        String?
+  previousStatus RequestStatus?   @map("previous_status")
+  newStatus      RequestStatus    @map("new_status")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  request  ExpenseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  reviewer User?          @relation("ReviewerActions", fields: [reviewerId], references: [id])
+
+  @@map("review_actions")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  requestId String?   @map("request_id")
+  message   String
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request ExpenseRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  @@map("notifications")
+}
+
+// Audit trail for administrator actions: role changes and account activation/deactivation.
+model UserAudit {
+  id        String   @id @default(cuid())
+  targetId  String   @map("target_id")
+  actorId   String   @map("actor_id")
+  action    String
+  detail    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  target User @relation("UserAuditTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  actor  User @relation("UserAuditActor", fields: [actorId], references: [id])
+
+  @@map("user_audits")
+}
