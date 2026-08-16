@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
-import { listMyRequests } from "@/lib/requests";
+import { listMyRequests, computeDashboardTotals } from "@/lib/requests";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,10 @@ export default async function EmployeeDashboard() {
   const session = await auth();
   if (!session?.user) return null;
 
-  const requests = await listMyRequests(session.user.id);
+  const [requests, totals] = await Promise.all([
+    listMyRequests(session.user.id),
+    computeDashboardTotals(session.user.id),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -25,6 +28,15 @@ export default async function EmployeeDashboard() {
           <Link href="/employee/new">New request</Link>
         </Button>
       </div>
+
+      {requests.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <SummaryStat label="Total requested" value={formatCurrency(totals.totalRequested)} />
+          <SummaryStat label="Pending review" value={formatCurrency(totals.totalPending)} />
+          <SummaryStat label="Approved" value={formatCurrency(totals.totalApproved)} />
+          <SummaryStat label="Paid" value={formatCurrency(totals.totalPaid)} />
+        </div>
+      )}
 
       {requests.length === 0 ? (
         <Card>
@@ -61,5 +73,16 @@ export default async function EmployeeDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+function SummaryStat({ label, value }: { label: string; value: string }) {
+  return (
+    <Card>
+      <CardContent className="py-4">
+        <p className="text-xs text-neutral-500">{label}</p>
+        <p className="text-lg font-semibold">{value}</p>
+      </CardContent>
+    </Card>
   );
 }

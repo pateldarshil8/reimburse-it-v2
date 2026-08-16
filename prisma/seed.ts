@@ -58,14 +58,14 @@ async function main() {
     console.log(`  ${u.role}: ${u.email} / password123`);
   }
 
-  // --- Sample expense requests (Day 2) ------------------------------------
-  // Only draft/submitted rows for now -- reviewer decisions (approved/
-  // rejected/paid) don't exist until the reviewer workflow lands.
-  //
-  // receiptUrl below is a Supabase Storage object *path* (matching the real
-  // upload model), not an actual uploaded file -- no bytes exist at this
-  // path in the bucket yet. The UI resolves receipts to signed URLs at view
-  // time and falls back to "Not available" if the object doesn't exist.
+  // --- Sample expense requests ---------------------------------------------
+  // Covers every status in the workflow so the reviewer queue, employee
+  // list, and dashboard totals all have something real to show on a fresh
+  // install. receiptUrl values below are Supabase Storage object *paths*
+  // (matching the real upload model), not actual uploaded files -- no bytes
+  // exist at these paths in the bucket yet. The UI resolves receipts to
+  // signed URLs at view time and falls back to "Not available" if the
+  // object doesn't exist.
 
   const existingRequests = await prisma.expenseRequest.count();
   if (existingRequests > 0) {
@@ -74,7 +74,7 @@ async function main() {
     return;
   }
 
-  // 1. Valid office-supply request, submitted and awaiting review.
+  // 1. Submitted, awaiting review.
   const officeSupplies = await prisma.expenseRequest.create({
     data: {
       submitterId: employee.id,
@@ -99,8 +99,8 @@ async function main() {
     },
   });
 
-  // 2. Travel request missing a receipt -- still in draft, not yet
-  // submittable (demonstrates the "receipt required to submit" rule).
+  // 2. Draft, missing a receipt -- not yet submittable (demonstrates the
+  // "receipt required to submit" rule).
   await prisma.expenseRequest.create({
     data: {
       submitterId: employee.id,
@@ -114,7 +114,152 @@ async function main() {
     },
   });
 
-  console.log("Seeded 2 sample expense requests (draft, submitted).");
+  // 3. Approved, awaiting payout.
+  const training = await prisma.expenseRequest.create({
+    data: {
+      submitterId: employee2.id,
+      title: "Volunteer coordination training course",
+      description: "Online certification course for new volunteer coordinators.",
+      category: "Training",
+      expenseDate: new Date("2026-07-28"),
+      totalAmount: "199.00",
+      currency: "USD",
+      receiptUrl: "seed/training-receipt.pdf",
+      receiptName: "training-receipt.pdf",
+      receiptType: "application/pdf",
+      status: "approved",
+    },
+  });
+  await prisma.reviewAction.create({
+    data: {
+      requestId: training.id,
+      action: "submitted",
+      previousStatus: "draft",
+      newStatus: "submitted",
+    },
+  });
+  await prisma.reviewAction.create({
+    data: {
+      requestId: training.id,
+      reviewerId: reviewer.id,
+      action: "approved",
+      comment: "Approved -- certification is on our approved training list.",
+      previousStatus: "submitted",
+      newStatus: "approved",
+    },
+  });
+  await prisma.notification.create({
+    data: {
+      userId: employee2.id,
+      requestId: training.id,
+      message: `Your request "${training.title}" was approved.`,
+    },
+  });
+
+  // 4. Rejected.
+  const lunch = await prisma.expenseRequest.create({
+    data: {
+      submitterId: employee2.id,
+      title: "Team lunch during planning session",
+      description: "Catered lunch for the quarterly planning session.",
+      category: "Meals",
+      expenseDate: new Date("2026-08-01"),
+      totalAmount: "310.00",
+      currency: "USD",
+      receiptUrl: "seed/lunch-receipt.jpg",
+      receiptName: "lunch-receipt.jpg",
+      receiptType: "image/jpeg",
+      status: "rejected",
+    },
+  });
+  await prisma.reviewAction.create({
+    data: {
+      requestId: lunch.id,
+      action: "submitted",
+      previousStatus: "draft",
+      newStatus: "submitted",
+    },
+  });
+  await prisma.reviewAction.create({
+    data: {
+      requestId: lunch.id,
+      reviewerId: reviewer.id,
+      action: "rejected",
+      comment: "Exceeds the per-person meal allowance for this event type.",
+      previousStatus: "submitted",
+      newStatus: "rejected",
+    },
+  });
+  await prisma.notification.create({
+    data: {
+      userId: employee2.id,
+      requestId: lunch.id,
+      message: `Your request "${lunch.title}" was rejected.`,
+    },
+  });
+
+  // 5. Paid -- full lifecycle.
+  const software = await prisma.expenseRequest.create({
+    data: {
+      submitterId: employee.id,
+      title: "Design software subscription",
+      description: "Monthly subscription used for volunteer program flyers.",
+      category: "Software or subscriptions",
+      expenseDate: new Date("2026-07-15"),
+      totalAmount: "52.99",
+      currency: "USD",
+      receiptUrl: "seed/software-receipt.pdf",
+      receiptName: "software-receipt.pdf",
+      receiptType: "application/pdf",
+      status: "paid",
+    },
+  });
+  await prisma.reviewAction.create({
+    data: {
+      requestId: software.id,
+      action: "submitted",
+      previousStatus: "draft",
+      newStatus: "submitted",
+    },
+  });
+  await prisma.reviewAction.create({
+    data: {
+      requestId: software.id,
+      reviewerId: reviewer.id,
+      action: "approved",
+      comment: "Approved for the flyer campaign.",
+      previousStatus: "submitted",
+      newStatus: "approved",
+    },
+  });
+  await prisma.reviewAction.create({
+    data: {
+      requestId: software.id,
+      reviewerId: reviewer.id,
+      action: "paid",
+      comment: "Reimbursed via bank transfer.",
+      previousStatus: "approved",
+      newStatus: "paid",
+    },
+  });
+  await prisma.notification.create({
+    data: {
+      userId: employee.id,
+      requestId: software.id,
+      message: `Your request "${software.title}" was approved.`,
+    },
+  });
+  await prisma.notification.create({
+    data: {
+      userId: employee.id,
+      requestId: software.id,
+      message: `Your request "${software.title}" was marked as paid.`,
+    },
+  });
+
+  console.log(
+    "Seeded 5 sample expense requests (draft, submitted, approved, rejected, paid) with review history and notifications."
+  );
 }
 
 main()

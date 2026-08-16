@@ -57,6 +57,23 @@ export const ExpenseRequestFormSchema = z.object({
 
 export type ExpenseRequestFormValues = z.infer<typeof ExpenseRequestFormSchema>;
 
+export const RejectRequestSchema = z.object({
+  comment: z
+    .string()
+    .trim()
+    .min(1, "A reason is required when rejecting a request.")
+    .max(1000, "Reason must be 1000 characters or fewer."),
+});
+
+export const ApproveRequestSchema = z.object({
+  comment: z
+    .string()
+    .trim()
+    .max(1000, "Comment must be 1000 characters or fewer.")
+    .optional()
+    .or(z.literal("")),
+});
+
 export function validateReceiptFile(file: File): string | null {
   if (!ALLOWED_RECEIPT_MIME_TYPES.includes(file.type as (typeof ALLOWED_RECEIPT_MIME_TYPES)[number])) {
     return "Receipt must be a JPEG, PNG, or PDF file.";
