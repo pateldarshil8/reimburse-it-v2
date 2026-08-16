@@ -27,12 +27,29 @@ ReimburseIt replaces that with one workflow:
 - [x] Requester: create/edit/submit a reimbursement request, with a "receipt
       required to submit" rule enforced server-side and real file upload to
       Supabase Storage
-- [x] Requester: own request list with status badges and a detail/history
-      view (signed-URL receipt access)
-- [ ] Reviewer: submitted-request queue, search/filter, approve/reject/mark
-      paid (Day 3)
-- [ ] Dashboard financial totals, pagination (Day 4)
-- [ ] Admin: view/manage users and account status (Day 4)
+- [x] Requester: own request list with status badges, per-user financial
+      summary, and a detail/history view (signed-URL receipt access)
+- [x] Reviewer: submitted-request queue with search/filter (status,
+      category, requester, date range, amount range, keyword) and sort,
+      approve / reject (required reason) / mark-paid, backend RBAC (a
+      reviewer can never act on their own request; drafts are never visible
+      to reviewers)
+- [x] Dashboard financial totals (pending count, total requested/pending/
+      approved/paid), shown on both the employee and reviewer dashboards
+- [x] Server-side pagination on the reviewer queue, admin user list, and all
+      list API endpoints
+- [x] Admin: user list with search/role filter, role changes, activate/
+      deactivate, every change recorded in an audit trail and shown in a
+      "Recent account activity" panel; an admin can't change their own role
+      or deactivate themselves
+- [x] Notifications: written on every status transition, in-app list with
+      unread-count badge, mark single / mark all as read
+- [x] `GET /api/requests`, `GET /api/requests/:id`, `GET /api/users`,
+      `GET /api/notifications` — paginated/filterable/sortable Route
+      Handlers with a consistent response envelope and 401/403/404/500
+      error handling; documented in `docs/openapi.yaml`
+- [x] "Waiting N days" indicator on submitted requests in the reviewer queue
+      and detail view
 
 ## Tech stack
 
@@ -90,6 +107,14 @@ All seeded accounts use the password `password123`.
 | reviewer | reviewer@cdf.org   |
 | admin    | admin@cdf.org      |
 
+## API documentation
+
+Read endpoints are documented as OpenAPI 3.0 in `docs/openapi.yaml` (view it
+with any Swagger/OpenAPI viewer, or paste it into https://editor.swagger.io).
+Mutations (create/submit/approve/reject/mark-paid, admin role/status
+changes) are Next.js Server Actions rather than REST endpoints -- see
+`planning/planning.md` for why.
+
 ## Data model
 
 - **User** — id, name, email, passwordHash, role (`employee`/`reviewer`/
@@ -106,14 +131,19 @@ All seeded accounts use the password `password123`.
 
 Full schema: `prisma/schema.prisma`.
 
-## Known limitations (Day 2)
+## Known limitations (Day 4)
 
-- Reviewer workflow, dashboard totals, filtering/pagination, and admin
-  management aren't built yet — see `planning/planning.md` for the
-  remaining days.
-- No line-item breakdown — single `totalAmount` field per request
+- No automated test suite yet — `prisma generate` can't run in the sandboxed
+  environment this was developed in, so local test-and-iterate wasn't
+  practical; verification has relied on manual checks against the live
+  deployment. A documented manual testing pass is still outstanding (Day 5).
+- No resubmission-after-rejection flow — a rejected request is currently
+  terminal.
+- No line-item breakdown — single `totalAmount` field per request.
 - Minimal auth — Credentials provider, no password reset/email verification
-  (matches the brief's own "preconfigured demonstration accounts" guidance)
+  (matches the brief's own "preconfigured demonstration accounts" guidance).
+- No self-service signup — accounts are created via `db:seed` or directly in
+  the database; only role/status management is exposed to admins.
 
 ## Future improvements
 

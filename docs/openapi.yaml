@@ -1,0 +1,294 @@
+openapi: 3.0.3
+info:
+  title: ReimburseIt API
+  description: >
+    Read APIs backing the expense reimbursement tracker's list/filter/
+    paginate views (problem_statement.md sections 13-14). Mutations
+    (create/submit/approve/reject/mark-paid, role/status changes) are Next.js
+    Server Actions, not REST endpoints -- they run server-side only and are
+    the actual authorization enforcement point, so a separate write API
+    would just duplicate that logic without adding capability. All list
+    endpoints below share the same paginated envelope and error format.
+  version: "1.0.0"
+servers:
+  - url: /api
+    description: Relative to the deployed app's origin.
+security:
+  - sessionCookie: []
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: authjs.session-token
+      description: Auth.js JWT session cookie. Set by signing in via /login.
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+      example:
+        error:
+          message: "Authentication required."
+    Page:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+    ExpenseRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        expenseDate:
+          type: string
+          format: date
+        totalAmount:
+          type: string
+          description: Decimal string, e.g. "84.50".
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [draft, submitted, approved, rejected, paid]
+        receiptUrl:
+          type: string
+          nullable: true
+          description: Storage object path, not a public URL -- resolve via the request detail endpoint or UI to get a short-lived signed URL.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        submitter:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [employee, reviewer, admin]
+        accountStatus:
+          type: string
+          enum: [active, inactive]
+        createdAt:
+          type: string
+          format: date-time
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+          nullable: true
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+paths:
+  /requests:
+    get:
+      summary: List reimbursement requests
+      description: >
+        Employees only ever see their own requests (server-enforced, not a
+        default -- a client-supplied requesterId cannot widen this).
+        Reviewers and admins see every non-draft request unless filtered.
+        Drafts are always excluded unless the caller is the owning employee.
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [draft, submitted, approved, rejected, paid] }
+        - in: query
+          name: category
+          schema: { type: string }
+        - in: query
+          name: requesterId
+          schema: { type: string }
+        - in: query
+          name: dateFrom
+          schema: { type: string, format: date }
+        - in: query
+          name: dateTo
+          schema: { type: string, format: date }
+        - in: query
+          name: minAmount
+          schema: { type: string }
+        - in: query
+          name: maxAmount
+          schema: { type: string }
+        - in: query
+          name: q
+          description: Keyword search across title, description, and requester name.
+          schema: { type: string }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [newest, oldest, amount_desc, amount_asc] }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        "200":
+          description: Paginated list of requests.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Page"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ExpenseRequest"
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /requests/{id}:
+    get:
+      summary: Get one request, with full review history
+      description: >
+        Returns the request plus its ordered ReviewAction history (covers
+        both the "Reviews" and "Request history" resources called out in
+        problem_statement.md section 13 -- they're the same rows viewed one
+        way). Visibility matches the UI: not-visible and not-found both
+        return 404, so existence isn't leaked to a caller who can't see it.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The request, with reviewActions embedded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ExpenseRequest"
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: Not found, or not visible to the caller.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /users:
+    get:
+      summary: List user accounts (admin only)
+      parameters:
+        - in: query
+          name: role
+          schema: { type: string, enum: [employee, reviewer, admin] }
+        - in: query
+          name: q
+          description: Search across name and email.
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        "200":
+          description: Paginated list of users.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Page"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/User"
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Signed in but not an administrator.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /notifications:
+    get:
+      summary: List the current user's notifications
+      description: Always scoped to the authenticated caller; there is no way to request another user's notifications through this endpoint.
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema: { type: string, enum: ["true", "false"], default: "false" }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        "200":
+          description: Paginated list of notifications.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Page"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Notification"
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
