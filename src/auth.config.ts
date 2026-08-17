@@ -2,7 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 
 export type AppRole = "employee" | "reviewer" | "admin";
 
-const ROLE_HOME: Record<AppRole, string> = {
+export const ROLE_HOME: Record<AppRole, string> = {
   employee: "/employee",
   reviewer: "/reviewer",
   admin: "/admin",
@@ -56,7 +56,7 @@ export const authConfig = {
         return true;
       }
 
-      if (isLoggedIn && nextUrl.pathname === "/login") {
+      if (isLoggedIn && (nextUrl.pathname === "/login" || nextUrl.pathname === "/signup")) {
         return Response.redirect(
           new URL(role ? ROLE_HOME[role] : "/employee", nextUrl)
         );
