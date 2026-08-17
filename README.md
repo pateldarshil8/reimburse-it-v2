@@ -100,12 +100,16 @@ ReimburseIt replaces that with one workflow:
 
 All seeded accounts use the password `password123`.
 
-| Role     | Email              |
-| -------- | ------------------ |
-| employee | employee@cdf.org   |
-| employee | employee2@cdf.org  |
-| reviewer | reviewer@cdf.org   |
-| admin    | admin@cdf.org      |
+| Role     | Name            | Email                     |
+| -------- | --------------- | -------------------------- |
+| employee | James Turner    | james.turner@gmail.com     |
+| employee | Emma Washington | emma.washington@gmail.com  |
+| reviewer | Liza White      | liza.white@gmail.com       |
+| admin    | Adam Brown      | adam.brown@gmail.com       |
+
+New users can also request an account from the login page ("Create account").
+Requests land in the admin's "Account Requests" tab for approval; an approved
+request becomes an active `employee`-role account.
 
 ## API documentation
 

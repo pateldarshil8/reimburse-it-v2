@@ -68,7 +68,7 @@ model ExpenseRequest {
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
-  submitter     User           @relation("SubmitterRequests", fields: [submitterId], references: [id])
+  submitter     User           @relation("SubmitterRequests", fields: [submitterId], references: [id], onDelete: Cascade)
   reviewActions ReviewAction[]
   notifications Notification[]
 
@@ -88,7 +88,7 @@ model ReviewAction {
   createdAt      DateTime         @default(now()) @map("created_at")
 
   request  ExpenseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  reviewer User?          @relation("ReviewerActions", fields: [reviewerId], references: [id])
+  reviewer User?          @relation("ReviewerActions", fields: [reviewerId], references: [id], onDelete: SetNull)
 
   @@map("review_actions")
 }
@@ -108,16 +108,21 @@ model Notification {
 }
 
 // Audit trail for administrator actions: role changes and account activation/deactivation.
+// targetId/actorId are nullable: when either user is later deleted (see
+// admin/actions.ts deleteUser), the FK is set null rather than the row
+// being cascaded away or the delete being blocked -- the audit trail
+// outlives the accounts it refers to. `detail` carries identifying text
+// (name/email) captured at deletion time as a fallback for display.
 model UserAudit {
   id        String   @id @default(cuid())
-  targetId  String   @map("target_id")
-  actorId   String   @map("actor_id")
+  targetId  String?  @map("target_id")
+  actorId   String?  @map("actor_id")
   action    String
   detail    String?
   createdAt DateTime @default(now()) @map("created_at")
 
-  target User @relation("UserAuditTarget", fields: [targetId], references: [id], onDelete: Cascade)
-  actor  User @relation("UserAuditActor", fields: [actorId], references: [id])
+  target User? @relation("UserAuditTarget", fields: [targetId], references: [id], onDelete: SetNull)
+  actor  User? @relation("UserAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@map("user_audits")
 }

@@ -10,44 +10,44 @@ async function main() {
   const password = await bcrypt.hash("password123", 10);
 
   const employee = await prisma.user.upsert({
-    where: { email: "employee@cdf.org" },
+    where: { email: "james.turner@gmail.com" },
     update: {},
     create: {
-      name: "Erin Employee",
-      email: "employee@cdf.org",
+      name: "James Turner",
+      email: "james.turner@gmail.com",
       passwordHash: password,
       role: "employee",
     },
   });
 
   const employee2 = await prisma.user.upsert({
-    where: { email: "employee2@cdf.org" },
+    where: { email: "emma.washington@gmail.com" },
     update: {},
     create: {
-      name: "Evan Employee",
-      email: "employee2@cdf.org",
+      name: "Emma Washington",
+      email: "emma.washington@gmail.com",
       passwordHash: password,
       role: "employee",
     },
   });
 
   const reviewer = await prisma.user.upsert({
-    where: { email: "reviewer@cdf.org" },
+    where: { email: "liza.white@gmail.com" },
     update: {},
     create: {
-      name: "Rita Reviewer",
-      email: "reviewer@cdf.org",
+      name: "Liza White",
+      email: "liza.white@gmail.com",
       passwordHash: password,
       role: "reviewer",
     },
   });
 
   const admin = await prisma.user.upsert({
-    where: { email: "admin@cdf.org" },
+    where: { email: "adam.brown@gmail.com" },
     update: {},
     create: {
-      name: "Alex Admin",
-      email: "admin@cdf.org",
+      name: "Adam Brown",
+      email: "adam.brown@gmail.com",
       passwordHash: password,
       role: "admin",
     },
