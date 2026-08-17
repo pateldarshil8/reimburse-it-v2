@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateUserRole, setAccountStatus, type AdminActionState } from "./actions";
+import { updateUserRole, setAccountStatus, deleteUser, type AdminActionState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
@@ -27,6 +27,10 @@ export function UserRow({ id, name, email, role, accountStatus, createdAt, isSel
   const nextStatus = accountStatus === "active" ? "inactive" : "active";
   const [statusState, statusAction, statusPending] = useActionState(
     setAccountStatus.bind(null, id, nextStatus),
+    initialState
+  );
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteUser.bind(null, id),
     initialState
   );
 
@@ -74,22 +78,46 @@ export function UserRow({ id, name, email, role, accountStatus, createdAt, isSel
         {isSelf ? (
           <span className="text-xs text-neutral-400">-</span>
         ) : (
-          <form action={statusAction}>
-            <Button
-              type="submit"
-              size="sm"
-              variant={accountStatus === "active" ? "destructive" : "outline"}
-              disabled={statusPending}
-            >
-              {statusPending && <Spinner className="size-3.5" />}
-              {statusPending
-                ? "Saving..."
-                : accountStatus === "active"
-                  ? "Deactivate"
-                  : "Activate"}
-            </Button>
-            {statusState.error && <p className="text-xs text-red-400">{statusState.error}</p>}
-          </form>
+          <div className="flex flex-col gap-2">
+            <form action={statusAction}>
+              <Button
+                type="submit"
+                size="sm"
+                variant={accountStatus === "active" ? "destructive" : "outline"}
+                disabled={statusPending || deletePending}
+              >
+                {statusPending && <Spinner className="size-3.5" />}
+                {statusPending
+                  ? "Saving..."
+                  : accountStatus === "active"
+                    ? "Deactivate"
+                    : "Activate"}
+              </Button>
+              {statusState.error && <p className="text-xs text-red-400">{statusState.error}</p>}
+            </form>
+
+            <form action={deleteAction}>
+              <Button
+                type="submit"
+                size="sm"
+                variant="destructive"
+                disabled={statusPending || deletePending}
+                onClick={(e) => {
+                  if (
+                    !confirm(
+                      `Permanently delete ${name}'s account? This removes their login and all of their own requests, and cannot be undone.`
+                    )
+                  ) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                {deletePending && <Spinner className="size-3.5" />}
+                {deletePending ? "Deleting..." : "Delete"}
+              </Button>
+              {deleteState.error && <p className="text-xs text-red-400">{deleteState.error}</p>}
+            </form>
+          </div>
         )}
       </td>
     </tr>

@@ -122,9 +122,9 @@ export default async function AdminDashboard({
                   {recentAudits.map((a) => (
                     <li key={a.id} className="border-b border-neutral-800 pb-2 last:border-0">
                       <span className="text-neutral-500">{formatDateTime(a.createdAt)}</span>{" "}
-                      <span className="font-medium text-neutral-100">{a.actor.name}</span>{" "}
+                      <span className="font-medium text-neutral-100">{a.actor?.name ?? "Unknown"}</span>{" "}
                       {a.action.replace("_", " ")}{" "}
-                      <span className="font-medium text-neutral-100">{a.target.name}</span>
+                      <span className="font-medium text-neutral-100">{a.target?.name ?? "a deleted account"}</span>
                       {a.detail ? <span className="text-neutral-500"> ({a.detail})</span> : null}
                     </li>
                   ))}

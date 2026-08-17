@@ -170,3 +170,47 @@ export async function rejectAccountRequest(
   revalidatePath("/admin");
   return {};
 }
+
+// Permanently deletes a user's account -- distinct from setAccountStatus's
+// deactivate, which just blocks login and keeps the row. A deleted user who
+// tries to log in gets the same generic "Invalid email or password" as a
+// wrong password, since auth.ts's authorize() treats "no matching user" and
+// "wrong password" identically (never reveals which one it was).
+//
+// Related rows are handled by the FK ON DELETE rules set up in the
+// "support_admin_user_deletion" migration rather than by manual cleanup
+// here: the user's own expense requests cascade-delete with them, their
+// name is nulled out (not deleted) on review actions/audit rows tied to
+// OTHER users' history, and this deletion itself is recorded in the audit
+// trail before the row disappears -- targetId/actorId are nullable
+// specifically so that record survives the delete instead of being
+// cascade-removed with it.
+export async function deleteUser(
+  targetUserId: string,
+  _prevState: AdminActionState | undefined,
+  _formData: FormData
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+
+  const target = await prisma.user.findUnique({ where: { id: targetUserId } });
+  if (!target) return { error: "User not found." };
+
+  if (target.id === admin.id) {
+    return { error: "You cannot delete your own account." };
+  }
+
+  await prisma.$transaction([
+    prisma.userAudit.create({
+      data: {
+        targetId: target.id,
+        actorId: admin.id,
+        action: "deleted",
+        detail: `${target.name} <${target.email}>`,
+      },
+    }),
+    prisma.user.delete({ where: { id: targetUserId } }),
+  ]);
+
+  revalidatePath("/admin");
+  return {};
+}
