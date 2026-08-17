@@ -124,7 +124,7 @@ export default async function AdminDashboard({
                       <span className="text-neutral-500">{formatDateTime(a.createdAt)}</span>{" "}
                       <span className="font-medium text-neutral-100">{a.actor?.name ?? "Unknown"}</span>{" "}
                       {a.action.replace("_", " ")}{" "}
-                      <span className="font-medium text-neutral-100">{a.target?.name ?? "a deleted account"}</span>
+                      <span className="font-medium text-neutral-100">{a.target?.name ?? "an account"}</span>
                       {a.detail ? <span className="text-neutral-500"> ({a.detail})</span> : null}
                     </li>
                   ))}
