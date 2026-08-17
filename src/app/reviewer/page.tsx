@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { listRequests, computeDashboardTotals } from "@/lib/requests";
-import { formatCurrency, formatDate, formatWaitingTime } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { CATEGORIES } from "@/lib/validation";
 import { StatusBadge } from "@/components/status-badge";
 import { Pagination } from "@/components/pagination";
@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 const STATUS_OPTIONS = ["submitted", "approved", "rejected", "paid"] as const;
 
 const SELECT_CLASS =
-  "flex h-9 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "flex h-9 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 shadow-sm transition-colors duration-150 hover:border-neutral-600 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30";
 
 type SearchParams = {
   q?: string;
@@ -22,8 +22,6 @@ type SearchParams = {
   requesterId?: string;
   dateFrom?: string;
   dateTo?: string;
-  minAmount?: string;
-  maxAmount?: string;
   sort?: string;
   page?: string;
 };
@@ -43,8 +41,6 @@ export default async function ReviewerQueuePage({
       requesterId: sp.requesterId,
       dateFrom: sp.dateFrom,
       dateTo: sp.dateTo,
-      minAmount: sp.minAmount,
-      maxAmount: sp.maxAmount,
       sort: sp.sort as "newest" | "oldest" | "amount_desc" | "amount_asc" | undefined,
       page: sp.page ? Number(sp.page) : 1,
       pageSize: 10,
@@ -64,24 +60,22 @@ export default async function ReviewerQueuePage({
     requesterId: sp.requesterId,
     dateFrom: sp.dateFrom,
     dateTo: sp.dateTo,
-    minAmount: sp.minAmount,
-    maxAmount: sp.maxAmount,
     sort: sp.sort,
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-semibold">Review queue</h1>
-        <p className="text-sm text-neutral-500">
-          Requests available for review, approval, and payout.
+        <h1 className="text-2xl font-semibold text-neutral-50">Review queue</h1>
+        <p className="text-sm text-neutral-400">
+          Approve, reject, or mark submitted requests as paid.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <SummaryStat label="Pending" value={String(totals.pendingCount)} />
-        <SummaryStat label="Total requested" value={formatCurrency(totals.totalRequested)} />
         <SummaryStat label="Total pending" value={formatCurrency(totals.totalPending)} />
+        <SummaryStat label="Total requested" value={formatCurrency(totals.totalRequested)} />
         <SummaryStat label="Total approved" value={formatCurrency(totals.totalApproved)} />
         <SummaryStat label="Total paid" value={formatCurrency(totals.totalPaid)} />
       </div>
@@ -146,14 +140,6 @@ export default async function ReviewerQueuePage({
               <Label htmlFor="dateTo">Expense date to</Label>
               <Input id="dateTo" name="dateTo" type="date" defaultValue={sp.dateTo} />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="minAmount">Min amount</Label>
-              <Input id="minAmount" name="minAmount" type="number" step="0.01" min="0" defaultValue={sp.minAmount} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="maxAmount">Max amount</Label>
-              <Input id="maxAmount" name="maxAmount" type="number" step="0.01" min="0" defaultValue={sp.maxAmount} />
-            </div>
             <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-2">
               <Button type="submit">Apply filters</Button>
               <Button asChild variant="outline">
@@ -166,7 +152,7 @@ export default async function ReviewerQueuePage({
 
       {data.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-neutral-500">
+          <CardContent className="py-10 text-center text-sm text-neutral-400">
             No requests match these filters.
           </CardContent>
         </Card>
@@ -174,22 +160,17 @@ export default async function ReviewerQueuePage({
         <div className="flex flex-col gap-3">
           {data.map((request) => (
             <Link key={request.id} href={`/reviewer/${request.id}`}>
-              <Card className="transition-colors hover:border-neutral-400">
+              <Card className="hover:-translate-y-0.5 hover:border-violet-500/40 hover:shadow-[0_0_20px_-6px_rgba(167,139,250,0.25)]">
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
                   <div>
-                    <p className="font-medium">{request.title}</p>
-                    <p className="text-sm text-neutral-500">
+                    <p className="font-medium text-neutral-100">{request.title}</p>
+                    <p className="text-sm text-neutral-400">
                       {request.submitter.name} &middot; {request.category} &middot;{" "}
                       {formatDate(request.expenseDate)}
                     </p>
-                    {request.status === "submitted" && (
-                      <p className="text-xs text-neutral-400">
-                        {formatWaitingTime(request.createdAt)}
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center gap-4">
-                    <p className="font-medium">
+                    <p className="font-medium text-neutral-100">
                       {formatCurrency(request.totalAmount.toString(), request.currency)}
                     </p>
                     <StatusBadge status={request.status} />
@@ -215,8 +196,8 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <CardContent className="py-4">
-        <p className="text-xs text-neutral-500">{label}</p>
-        <p className="text-lg font-semibold">{value}</p>
+        <p className="text-xs text-neutral-400">{label}</p>
+        <p className="text-lg font-semibold text-neutral-50">{value}</p>
       </CardContent>
     </Card>
   );

@@ -8,7 +8,7 @@ export default function NotificationsLayout({
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <SiteNav />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8 animate-fade-in">
         {children}
       </main>
     </div>

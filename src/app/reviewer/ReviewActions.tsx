@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const initialState: ReviewActionState = {};
@@ -49,16 +50,17 @@ function SubmittedActions({ id }: { id: string }) {
             placeholder="Optional note for the requester"
           />
           {approveState.error && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-red-400" role="alert">
               {approveState.error}
             </p>
           )}
           <Button type="submit" disabled={approvePending} className="self-start">
+            {approvePending && <Spinner className="size-4" />}
             {approvePending ? "Approving..." : "Approve"}
           </Button>
         </form>
 
-        <form action={rejectAction} className="flex flex-col gap-2 border-t border-neutral-200 pt-4">
+        <form action={rejectAction} className="flex flex-col gap-2 border-t border-neutral-800 pt-4">
           <Label htmlFor="reject-comment">Reject (reason required)</Label>
           <Textarea
             id="reject-comment"
@@ -68,7 +70,7 @@ function SubmittedActions({ id }: { id: string }) {
             required
           />
           {rejectState.error && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-red-400" role="alert">
               {rejectState.error}
             </p>
           )}
@@ -78,6 +80,7 @@ function SubmittedActions({ id }: { id: string }) {
             disabled={rejectPending}
             className="self-start"
           >
+            {rejectPending && <Spinner className="size-4" />}
             {rejectPending ? "Rejecting..." : "Reject"}
           </Button>
         </form>
@@ -107,11 +110,12 @@ function ApprovedActions({ id }: { id: string }) {
             placeholder="e.g. Reimbursed via bank transfer"
           />
           {state.error && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-red-400" role="alert">
               {state.error}
             </p>
           )}
           <Button type="submit" disabled={pending} className="self-start">
+            {pending && <Spinner className="size-4" />}
             {pending ? "Marking as paid..." : "Mark as paid"}
           </Button>
         </form>

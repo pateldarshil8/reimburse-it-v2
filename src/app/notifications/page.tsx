@@ -11,7 +11,6 @@ import { formatDateTime } from "@/lib/format";
 const REQUEST_DETAIL_PREFIX: Record<string, string> = {
   employee: "/employee",
   reviewer: "/reviewer",
-  admin: "/reviewer",
 };
 
 export default async function NotificationsPage() {
@@ -25,11 +24,11 @@ export default async function NotificationsPage() {
   const detailPrefix = REQUEST_DETAIL_PREFIX[session.user.role];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Notifications</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="text-2xl font-semibold text-neutral-50">Notifications</h1>
+          <p className="text-sm text-neutral-400">
             Updates on your requests and account.
           </p>
         </div>
@@ -55,14 +54,14 @@ export default async function NotificationsPage() {
         </CardHeader>
         <CardContent>
           {notifications.length === 0 ? (
-            <p className="text-sm text-neutral-500">No notifications yet.</p>
+            <p className="text-sm text-neutral-400">No notifications yet.</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {notifications.map((n) => {
                 const canLink = Boolean(n.requestId && detailPrefix);
                 const message = (
                   <div>
-                    <p className={n.readAt ? "text-sm text-neutral-600" : "text-sm font-medium"}>
+                    <p className={n.readAt ? "text-sm text-neutral-500" : "text-sm font-medium text-neutral-100"}>
                       {n.message}
                     </p>
                     <p className="text-xs text-neutral-400">{formatDateTime(n.createdAt)}</p>
@@ -72,8 +71,8 @@ export default async function NotificationsPage() {
                 return (
                   <li
                     key={n.id}
-                    className={`flex items-start justify-between gap-4 rounded-lg border p-3 transition-colors ${
-                      n.readAt ? "border-neutral-100" : "border-neutral-300 bg-neutral-50"
+                    className={`flex items-start justify-between gap-4 rounded-lg border p-3 transition-colors duration-150 ${
+                      n.readAt ? "border-neutral-800" : "border-violet-500/30 bg-violet-500/10"
                     }`}
                   >
                     {canLink ? (

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Select,
   SelectContent,
@@ -51,7 +52,7 @@ export function RequestForm({ existing }: { existing?: ExistingRequest }) {
           maxLength={200}
         />
         {state.fieldErrors?.title && (
-          <p className="text-xs text-red-600">{state.fieldErrors.title}</p>
+          <p className="text-xs text-red-400">{state.fieldErrors.title}</p>
         )}
       </div>
 
@@ -71,7 +72,7 @@ export function RequestForm({ existing }: { existing?: ExistingRequest }) {
             </SelectContent>
           </Select>
           {state.fieldErrors?.category && (
-            <p className="text-xs text-red-600">{state.fieldErrors.category}</p>
+            <p className="text-xs text-red-400">{state.fieldErrors.category}</p>
           )}
         </div>
 
@@ -86,7 +87,7 @@ export function RequestForm({ existing }: { existing?: ExistingRequest }) {
             required
           />
           {state.fieldErrors?.expenseDate && (
-            <p className="text-xs text-red-600">{state.fieldErrors.expenseDate}</p>
+            <p className="text-xs text-red-400">{state.fieldErrors.expenseDate}</p>
           )}
         </div>
       </div>
@@ -104,7 +105,7 @@ export function RequestForm({ existing }: { existing?: ExistingRequest }) {
           required
         />
         {state.fieldErrors?.totalAmount && (
-          <p className="text-xs text-red-600">{state.fieldErrors.totalAmount}</p>
+          <p className="text-xs text-red-400">{state.fieldErrors.totalAmount}</p>
         )}
       </div>
 
@@ -120,7 +121,7 @@ export function RequestForm({ existing }: { existing?: ExistingRequest }) {
           maxLength={2000}
         />
         {state.fieldErrors?.description && (
-          <p className="text-xs text-red-600">{state.fieldErrors.description}</p>
+          <p className="text-xs text-red-400">{state.fieldErrors.description}</p>
         )}
       </div>
 
@@ -128,17 +129,17 @@ export function RequestForm({ existing }: { existing?: ExistingRequest }) {
         <Label htmlFor="receipt">Receipt (JPEG, PNG, or PDF, up to 10MB)</Label>
         <Input id="receipt" name="receipt" type="file" accept=".jpg,.jpeg,.png,.pdf" />
         {existing?.receiptName && (
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-neutral-400">
             Current receipt: {existing.receiptName}. Choose a new file to replace it.
           </p>
         )}
         {state.fieldErrors?.receipt && (
-          <p className="text-xs text-red-600">{state.fieldErrors.receipt}</p>
+          <p className="text-xs text-red-400">{state.fieldErrors.receipt}</p>
         )}
       </div>
 
       {state.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-red-400" role="alert">
           {state.error}
         </p>
       )}
@@ -151,9 +152,11 @@ export function RequestForm({ existing }: { existing?: ExistingRequest }) {
           variant="outline"
           disabled={pending}
         >
+          {pending && <Spinner className="size-4" />}
           {pending ? "Saving..." : "Save as draft"}
         </Button>
         <Button type="submit" name="intent" value="submit" disabled={pending}>
+          {pending && <Spinner className="size-4" />}
           {pending ? "Submitting..." : "Submit for review"}
         </Button>
         {existing && (
@@ -161,7 +164,7 @@ export function RequestForm({ existing }: { existing?: ExistingRequest }) {
             action={deleteDraftRequest.bind(null, existing.id)}
             className="ml-auto"
           >
-            <Button type="submit" variant="ghost" className="text-red-600 hover:text-red-700">
+            <Button type="submit" variant="ghost" className="text-red-400 hover:text-red-300">
               Delete draft
             </Button>
           </form>

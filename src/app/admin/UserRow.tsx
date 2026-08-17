@@ -4,12 +4,10 @@ import { useActionState } from "react";
 import { updateUserRole, setAccountStatus, type AdminActionState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { formatDate } from "@/lib/format";
 
 const initialState: AdminActionState = {};
-
-const SELECT_CLASS =
-  "flex h-8 w-32 rounded-md border border-neutral-300 bg-white px-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-400";
 
 type Props = {
   id: string;
@@ -33,9 +31,9 @@ export function UserRow({ id, name, email, role, accountStatus, createdAt, isSel
   );
 
   return (
-    <tr className="border-b border-neutral-200 last:border-0">
+    <tr className="border-b border-neutral-800 last:border-0">
       <td className="py-3 pr-4 align-top">
-        <p className="font-medium">{name}</p>
+        <p className="font-medium text-neutral-100">{name}</p>
         <p className="text-xs text-neutral-500">{email}</p>
         <p className="text-xs text-neutral-400">Joined {formatDate(createdAt)}</p>
       </td>
@@ -49,15 +47,21 @@ export function UserRow({ id, name, email, role, accountStatus, createdAt, isSel
                 role changes after a successful update -- otherwise the
                 dropdown keeps showing whatever the admin last picked in the
                 UI even after the save round-trip completes. */}
-            <select key={role} name="role" defaultValue={role} className={SELECT_CLASS}>
+            <select
+              key={role}
+              name="role"
+              defaultValue={role}
+              className="flex h-8 w-32 rounded-lg border border-neutral-700 bg-neutral-900 px-2 text-sm text-neutral-100 shadow-sm transition-colors duration-150 hover:border-neutral-600 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+            >
               <option value="employee">employee</option>
               <option value="reviewer">reviewer</option>
               <option value="admin">admin</option>
             </select>
             <Button type="submit" size="sm" variant="outline" disabled={rolePending}>
+              {rolePending && <Spinner className="size-3.5" />}
               {rolePending ? "Saving..." : "Update role"}
             </Button>
-            {roleState.error && <p className="text-xs text-red-600">{roleState.error}</p>}
+            {roleState.error && <p className="text-xs text-red-400">{roleState.error}</p>}
           </form>
         )}
       </td>
@@ -77,13 +81,14 @@ export function UserRow({ id, name, email, role, accountStatus, createdAt, isSel
               variant={accountStatus === "active" ? "destructive" : "outline"}
               disabled={statusPending}
             >
+              {statusPending && <Spinner className="size-3.5" />}
               {statusPending
                 ? "Saving..."
                 : accountStatus === "active"
                   ? "Deactivate"
                   : "Activate"}
             </Button>
-            {statusState.error && <p className="text-xs text-red-600">{statusState.error}</p>}
+            {statusState.error && <p className="text-xs text-red-400">{statusState.error}</p>}
           </form>
         )}
       </td>

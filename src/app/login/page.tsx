@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Card,
   CardContent,
@@ -17,10 +19,20 @@ export default function LoginPage() {
   const [state, formAction, pending] = useActionState(loginAction, undefined);
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
+    <main className="flex flex-1 items-center justify-center p-6 animate-fade-in">
+      <Card
+        className="w-full max-w-sm"
+        style={{ boxShadow: "0 0 40px -12px rgba(167,139,250,0.15)" }}
+      >
         <CardHeader>
-          <CardTitle>ReimburseIt</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <span
+              className="inline-block size-2 rounded-full bg-violet-400"
+              style={{ boxShadow: "0 0 8px 1px rgba(167,139,250,0.7)" }}
+              aria-hidden="true"
+            />
+            Sign in
+          </CardTitle>
           <CardDescription>
             Community Dreams Foundation expense tracker. Sign in to continue.
           </CardDescription>
@@ -33,7 +45,7 @@ export default function LoginPage() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="employee@cdf.org"
+                placeholder="you@example.com"
                 required
               />
             </div>
@@ -42,15 +54,20 @@ export default function LoginPage() {
               <Input id="password" name="password" type="password" required />
             </div>
             {state?.error && (
-              <p className="text-sm text-red-600">{state.error}</p>
+              <p className="text-sm text-red-400" role="alert">
+                {state.error}
+              </p>
             )}
             <Button type="submit" disabled={pending} className="w-full">
+              {pending && <Spinner className="size-4" />}
               {pending ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-          <p className="mt-4 text-xs text-neutral-500">
-            Seeded logins: employee@cdf.org / reviewer@cdf.org / admin@cdf.org, password:
-            password123
+          <p className="mt-4 text-center text-sm text-neutral-400">
+            New here?{" "}
+            <Link href="/signup" className="font-medium text-violet-400 hover:text-violet-300 hover:underline">
+              Create account
+            </Link>
           </p>
         </CardContent>
       </Card>

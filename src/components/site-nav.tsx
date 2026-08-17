@@ -19,15 +19,23 @@ export async function SiteNav() {
     : 0;
 
   return (
-    <header className="border-b border-neutral-200 bg-white">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-3">
+    <header className="sticky top-0 z-10 border-b border-neutral-800 bg-black/80 backdrop-blur supports-[backdrop-filter]:bg-black/60">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-sm font-semibold">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm font-semibold text-neutral-50 transition-colors hover:text-violet-300"
+          >
+            <span
+              className="inline-block size-2 rounded-full bg-violet-400"
+              style={{ boxShadow: "0 0 8px 1px rgba(167,139,250,0.7)" }}
+              aria-hidden="true"
+            />
             ReimburseIt
           </Link>
           {link && (
-            <nav className="flex items-center gap-4 text-sm text-neutral-600">
-              <Link href={link.href} className="hover:text-neutral-900">
+            <nav className="flex items-center gap-4 text-sm text-neutral-400">
+              <Link href={link.href} className="transition-colors hover:text-violet-300">
                 {link.label}
               </Link>
             </nav>
@@ -38,7 +46,7 @@ export async function SiteNav() {
             <>
               <Link
                 href="/notifications"
-                className="relative text-sm text-neutral-600 hover:text-neutral-900"
+                className="relative text-sm text-neutral-400 transition-colors hover:text-violet-300"
               >
                 Notifications
                 {unreadCount > 0 && (
@@ -48,7 +56,7 @@ export async function SiteNav() {
                 )}
               </Link>
               <Badge variant="secondary">{session.user.role}</Badge>
-              <span className="hidden text-sm text-neutral-600 sm:inline">
+              <span className="hidden text-sm text-neutral-400 sm:inline">
                 {session.user.name}
               </span>
               <form
