@@ -101,3 +101,72 @@ export async function setAccountStatus(
   revalidatePath("/admin");
   return {};
 }
+
+// Approves a pending signup request: creates a real `employee`-role,
+// active User from the stored name/email/password hash, and marks the
+// request approved. New accounts always start as `employee` -- an admin
+// changes the role afterward from the Users tab, same as any other user.
+export async function approveAccountRequest(
+  requestId: string,
+  _prevState: AdminActionState | undefined,
+  _formData: FormData
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+
+  const request = await prisma.accountRequest.findUnique({ where: { id: requestId } });
+  if (!request) return { error: "Request not found." };
+  if (request.status !== "pending") return { error: "This request was already reviewed." };
+
+  // A request can outlive a User being created for that email through some
+  // other path in between -- re-check right before creating.
+  const existingUser = await prisma.user.findUnique({ where: { email: request.email } });
+  if (existingUser) {
+    await prisma.accountRequest.update({
+      where: { id: requestId },
+      data: { status: "approved", reviewedAt: new Date(), reviewedById: admin.id },
+    });
+    return { error: "An account with this email already exists; request marked resolved." };
+  }
+
+  await prisma.$transaction([
+    prisma.user.create({
+      data: {
+        name: `${request.firstName} ${request.lastName}`.trim(),
+        email: request.email,
+        passwordHash: request.passwordHash,
+        role: "employee",
+        accountStatus: "active",
+      },
+    }),
+    prisma.accountRequest.update({
+      where: { id: requestId },
+      data: { status: "approved", reviewedAt: new Date(), reviewedById: admin.id },
+    }),
+  ]);
+
+  revalidatePath("/admin");
+  return {};
+}
+
+// Rejects a pending signup request. The request row is kept (status =
+// rejected) as a record, not deleted -- the requester can submit a fresh
+// request with the same email later (see src/app/signup/actions.ts).
+export async function rejectAccountRequest(
+  requestId: string,
+  _prevState: AdminActionState | undefined,
+  _formData: FormData
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+
+  const request = await prisma.accountRequest.findUnique({ where: { id: requestId } });
+  if (!request) return { error: "Request not found." };
+  if (request.status !== "pending") return { error: "This request was already reviewed." };
+
+  await prisma.accountRequest.update({
+    where: { id: requestId },
+    data: { status: "rejected", reviewedAt: new Date(), reviewedById: admin.id },
+  });
+
+  revalidatePath("/admin");
+  return {};
+}

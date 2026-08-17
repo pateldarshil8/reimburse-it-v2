@@ -47,6 +47,7 @@ model User {
   notifications   Notification[]
   auditsReceived  UserAudit[]      @relation("UserAuditTarget")
   auditsPerformed UserAudit[]      @relation("UserAuditActor")
+  accountRequestsReviewed AccountRequest[] @relation("AccountRequestReviewer")
 
   @@map("users")
 }
@@ -119,4 +120,29 @@ model UserAudit {
   actor  User @relation("UserAuditActor", fields: [actorId], references: [id])
 
   @@map("user_audits")
+}
+
+enum AccountRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+// Public self-signup request (src/app/signup/). Not a User until an admin
+// approves it -- keeps unapproved signups out of the users table entirely,
+// so there's no "pending" account that could accidentally authenticate.
+model AccountRequest {
+  id           String               @id @default(cuid())
+  firstName    String               @map("first_name")
+  lastName     String               @map("last_name")
+  email        String               @unique
+  passwordHash String               @map("password_hash")
+  status       AccountRequestStatus @default(pending)
+  createdAt    DateTime             @default(now()) @map("created_at")
+  reviewedAt   DateTime?            @map("reviewed_at")
+  reviewedById String?              @map("reviewed_by_id")
+
+  reviewedBy User? @relation("AccountRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@map("account_requests")
 }
