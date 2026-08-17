@@ -47,7 +47,7 @@ ReimburseIt replaces that with one workflow:
 - [x] `GET /api/requests`, `GET /api/requests/:id`, `GET /api/users`,
       `GET /api/notifications` — paginated/filterable/sortable Route
       Handlers with a consistent response envelope and 401/403/404/500
-      error handling; documented in `docs/openapi.yaml`
+      error handling; documented in `openapi/openapi.yaml`
 - [x] "Waiting N days" indicator on submitted requests in the reviewer queue
       and detail view
 
@@ -113,7 +113,7 @@ request becomes an active `employee`-role account.
 
 ## API documentation
 
-Read endpoints are documented as OpenAPI 3.0 in `docs/openapi.yaml` (view it
+Read endpoints are documented as OpenAPI 3.0 in `openapi/openapi.yaml` (view it
 with any Swagger/OpenAPI viewer, or paste it into https://editor.swagger.io).
 Mutations (create/submit/approve/reject/mark-paid, admin role/status
 changes) are Next.js Server Actions rather than REST endpoints -- see
