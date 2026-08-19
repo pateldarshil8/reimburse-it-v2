@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ReimburseIt | Community Dreams Foundation",
+  title: "ReimburseIt",
   description: "Submit and track expense reimbursement requests.",
 };
 
