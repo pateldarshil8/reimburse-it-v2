@@ -45,7 +45,10 @@ shared between the reviewer queue, the admin user list, and four documented
 `/api/notifications`); role-based routing enforced at both edge middleware
 and page-render time; a public self-signup flow gated by admin approval; a
 dark violet visual theme applied consistently across every screen with
-loading skeletons on each route.
+loading skeletons on each route; a browser-tab favicon and a "ReimburseIt"
+home link on both the sign-in and create-account pages so a visitor can
+always get back to the public landing page, not just the app screens behind
+authentication.
 
 I also reseeded the four demo accounts under fictional names distinct from
 the original CDF-branded seed data (James Turner, Emma Washington, Liza

@@ -20,7 +20,17 @@ how the built application diverged from `planning/planning.md`.
 | Validation | Zod, shared between client forms and Server Actions | ^4.4.3 |
 | Password hashing | bcryptjs | ^3.0.3 |
 | Select/Dialog primitives | Radix UI | ^1.x / ^2.x |
+| Icons | lucide-react (`Check`, `ChevronDown` in the `Select` component) | 1.32.0, pinned exact |
 | Deployment | Vercel (auto-deploy on push to `main`) | — |
+
+`lucide-react` is pinned to an exact version rather than a caret range, and
+`package-lock.json` is committed, after a real issue surfaced during Day 5
+polishing: a fresh install resolved to `lucide-react@1.33.0`, a published
+version that ships with no `.d.ts` files at all (an upstream packaging bug),
+which failed the typecheck. Without a committed lockfile, a future Vercel
+build could have silently resolved to the same broken version and failed —
+pinning the exact version and committing the lockfile makes installs
+reproducible going forward.
 
 One repo serves both frontend and backend: Server Components render pages,
 Server Actions handle mutations, and a small set of Route Handlers under

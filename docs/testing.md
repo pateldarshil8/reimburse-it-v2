@@ -265,3 +265,38 @@ still being persisted, not reset between sessions.
 Additional gap found during testing, not on the brief's scenario list: the
 request form does not preserve field values after a server-side validation
 failure (see scenario 6 and `docs/reflection.md`).
+
+---
+
+## Day 5 polish verification
+
+A final pass against the live deployment after the last round of UI polish
+(browser-tab favicon, "ReimburseIt"-only page title, and a home link on the
+sign-in/create-account pages), performed live via browser automation against
+`reimburse-it-v2.vercel.app`:
+
+- **Page title.** The browser tab reads `ReimburseIt` (previously
+  `ReimburseIt | Community Dreams Foundation`) on `/login`, confirmed via the
+  tab's title after navigation.
+- **Favicon.** `GET /icon.svg` returns the icon (a violet circle on a dark
+  rounded square) and renders correctly in the browser tab; Next.js's
+  metadata file convention picks it up automatically from `src/app/icon.svg`
+  with no additional wiring.
+- **Home link on `/login`.** The top-left "ReimburseIt" link navigated to
+  `/` when clicked.
+- **Home link on `/signup`.** Same header present and styled consistently
+  with `/login` and the public landing page.
+- **No regressions.** Re-ran a full sign-in as James Turner (employee)
+  immediately after these changes deployed — dashboard, request list, and
+  notification badge all rendered correctly, and the browser console showed
+  no errors on either the login or signup page.
+- **Dependency fix caught by this pass.** A fresh `npm install` during this
+  round of work resolved `lucide-react` to `1.33.0`, a published version
+  with no type declarations, which failed the local typecheck (13 baseline
+  errors became 14). Traced to a missing lockfile rather than anything in
+  the new UI code; fixed by pinning `lucide-react` to the last known-good
+  version (`1.32.0`) and committing `package-lock.json`. Confirmed back to
+  the 13-error sandbox baseline (all four remaining categories are
+  sandbox-only artifacts of not being able to run `prisma generate` or a
+  full `next build` locally — see the top of this document) and a clean
+  `next build` up to that same expected point before pushing.
