@@ -50,6 +50,10 @@ ReimburseIt replaces that with one workflow:
       error handling; documented in `openapi/openapi.yaml`
 - [x] "Waiting N days" indicator on submitted requests in the reviewer queue
       and detail view
+- [x] Optional TOTP two-factor authentication (`/account`), per-account
+      lockout and per-IP throttling on login, an `AuthAudit` log of
+      authentication events, and self-service password reset via a
+      single-use emailed token — see `SECURITY_CASE_STUDY.md`
 
 ## Tech stack
 
@@ -83,6 +87,11 @@ ReimburseIt replaces that with one workflow:
    - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — from Supabase Project
      Settings → API; the service role key is server-only, never expose it
      to the client
+   - `MFA_ENCRYPTION_KEY` — generate with `openssl rand -base64 32`;
+     required to enroll in two-factor authentication (encrypts TOTP
+     secrets at rest, see `SECURITY_CASE_STUDY.md`)
+   - `RESEND_API_KEY` / `EMAIL_FROM` — optional; without these, password
+     reset links are logged to the server console instead of emailed
 3. Push the schema:
    ```bash
    npm run db:push
@@ -135,19 +144,34 @@ changes) are Next.js Server Actions rather than REST endpoints -- see
 
 Full schema: `prisma/schema.prisma`.
 
-## Known limitations (Day 4)
+## Known limitations
 
-- No automated test suite yet — `prisma generate` can't run in the sandboxed
+- No automated test suite — `prisma generate` can't run in the sandboxed
   environment this was developed in, so local test-and-iterate wasn't
-  practical; verification has relied on manual checks against the live
-  deployment. A documented manual testing pass is still outstanding (Day 5).
+  practical. Verification is a documented manual pass against the live
+  deployment; see `docs/testing.md` for scenario-by-scenario evidence.
 - No resubmission-after-rejection flow — a rejected request is currently
   terminal.
 - No line-item breakdown — single `totalAmount` field per request.
-- Minimal auth — Credentials provider, no password reset/email verification
-  (matches the brief's own "preconfigured demonstration accounts" guidance).
-- No self-service signup — accounts are created via `db:seed` or directly in
-  the database; only role/status management is exposed to admins.
+- Authentication now includes optional TOTP MFA (enrollable from
+  `/account`), per-account lockout and per-IP throttling on login, an
+  `AuthAudit` log of authentication events (visible to admins under
+  Admin → Security), and password reset via a single-use, time-limited
+  emailed token — see `SECURITY_CASE_STUDY.md` for the full before/after
+  and remaining gaps. Specifically still open:
+  - MFA is opt-in for every role, including admin — not yet enforced for
+    privileged roles specifically.
+  - Password reset email delivery requires `RESEND_API_KEY`/`EMAIL_FROM`
+    to be configured; without them, reset links are logged server-side
+    rather than emailed (fine for local development, not for production).
+  - Login rate limiting is Postgres-backed (correctness-first), not a
+    dedicated in-memory/Redis limiter (scale-first) — fine at this
+    project's traffic level, called out as a tradeoff rather than an
+    oversight.
+  - No CAPTCHA/bot-detection on login, signup, or password reset.
+  - The signup flow still reveals whether an email is already registered
+    (a minor enumeration vector, pre-existing and not in scope for this
+    pass — see `SECURITY_CASE_STUDY.md`).
 
 ## Future improvements
 
