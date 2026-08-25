@@ -10,7 +10,22 @@ import { formatDateTime } from "@/lib/format";
 const TABS = [
   { key: "users", label: "Users" },
   { key: "requests", label: "Account Requests" },
+  { key: "security", label: "Security" },
 ] as const;
+
+const AUTH_EVENT_BADGE: Record<string, "default" | "secondary" | "destructive"> = {
+  login_success: "default",
+  mfa_success: "default",
+  login_failure: "secondary",
+  mfa_failure: "secondary",
+  login_locked_out: "destructive",
+  account_locked: "destructive",
+  account_unlocked: "default",
+  mfa_enabled: "default",
+  mfa_disabled: "secondary",
+  password_reset_requested: "secondary",
+  password_reset_completed: "default",
+};
 
 export default async function AdminDashboard({
   searchParams,
@@ -18,29 +33,35 @@ export default async function AdminDashboard({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { tab: rawTab } = await searchParams;
-  const tab = rawTab === "requests" ? "requests" : "users";
+  const tab = rawTab === "requests" ? "requests" : rawTab === "security" ? "security" : "users";
 
   const session = await auth();
   const currentUserId = session?.user?.id;
 
-  const [users, recentAudits, pendingRequests, reviewedRequestsCount] = await Promise.all([
-    prisma.user.findMany({
-      orderBy: [{ role: "asc" }, { name: "asc" }],
-    }),
-    prisma.userAudit.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      include: {
-        target: { select: { name: true, email: true } },
-        actor: { select: { name: true, email: true } },
-      },
-    }),
-    prisma.accountRequest.findMany({
-      where: { status: "pending" },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.accountRequest.count({ where: { status: { not: "pending" } } }),
-  ]);
+  const [users, recentAudits, pendingRequests, reviewedRequestsCount, recentAuthEvents] =
+    await Promise.all([
+      prisma.user.findMany({
+        orderBy: [{ role: "asc" }, { name: "asc" }],
+      }),
+      prisma.userAudit.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: {
+          target: { select: { name: true, email: true } },
+          actor: { select: { name: true, email: true } },
+        },
+      }),
+      prisma.accountRequest.findMany({
+        where: { status: "pending" },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.accountRequest.count({ where: { status: { not: "pending" } } }),
+      prisma.authAudit.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 25,
+        include: { user: { select: { name: true, email: true } } },
+      }),
+    ]);
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
@@ -133,7 +154,7 @@ export default async function AdminDashboard({
             </CardContent>
           </Card>
         </>
-      ) : (
+      ) : tab === "requests" ? (
         <Card>
           <CardHeader>
             <CardTitle>Pending account requests ({pendingRequests.length})</CardTitle>
@@ -168,6 +189,33 @@ export default async function AdminDashboard({
                   </tbody>
                 </table>
               </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent authentication activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentAuthEvents.length === 0 ? (
+              <p className="text-sm text-neutral-400">No authentication events recorded yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-2 text-sm">
+                {recentAuthEvents.map((e) => (
+                  <li key={e.id} className="border-b border-neutral-800 pb-2 last:border-0">
+                    <span className="text-neutral-500">{formatDateTime(e.createdAt)}</span>{" "}
+                    <Badge variant={AUTH_EVENT_BADGE[e.event] ?? "secondary"}>
+                      {e.event.replace(/_/g, " ")}
+                    </Badge>{" "}
+                    <span className="font-medium text-neutral-100">
+                      {e.user?.name ?? e.email ?? "unknown"}
+                    </span>
+                    {e.ip ? <span className="text-neutral-500"> from {e.ip}</span> : null}
+                    {e.detail ? <span className="text-neutral-500"> ({e.detail})</span> : null}
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>
