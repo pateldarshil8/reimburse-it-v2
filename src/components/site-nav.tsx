@@ -55,6 +55,12 @@ export async function SiteNav() {
                   </Badge>
                 )}
               </Link>
+              <Link
+                href="/account"
+                className="text-sm text-neutral-400 transition-colors hover:text-violet-300"
+              >
+                Account
+              </Link>
               <Badge variant="secondary">{session.user.role}</Badge>
               <span className="hidden text-sm text-neutral-400 sm:inline">
                 {session.user.name}
