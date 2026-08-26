@@ -44,6 +44,13 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       const role = auth?.user?.role as AppRole | undefined;
 
+      // /account (MFA enrollment, etc.) requires being signed in, but isn't
+      // scoped to a specific role the way /employee, /reviewer, /admin are
+      // -- any authenticated user of any role can manage their own MFA.
+      if (nextUrl.pathname.startsWith("/account")) {
+        return isLoggedIn;
+      }
+
       const requiredRole = roleForPath(nextUrl.pathname);
 
       if (requiredRole) {

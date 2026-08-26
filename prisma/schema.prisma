@@ -42,12 +42,31 @@ model User {
   accountStatus AccountStatus @default(active) @map("account_status")
   createdAt     DateTime      @default(now()) @map("created_at")
 
+  // --- Authentication hardening (see SECURITY_CASE_STUDY.md) ---
+  // TOTP MFA: secret is AES-256-GCM encrypted at rest (src/lib/crypto.ts),
+  // never stored or logged in plaintext. Unlike a password hash, this must
+  // be *decryptable* (not just verifiable) because TOTP verification needs
+  // the raw secret to recompute the current code -- encryption, not
+  // hashing, is the correct primitive here.
+  mfaEnabled         Boolean   @default(false) @map("mfa_enabled")
+  mfaSecretEncrypted String?   @map("mfa_secret_encrypted")
+  mfaEnabledAt       DateTime? @map("mfa_enabled_at")
+
+  // Account lockout (src/lib/login-security.ts): incremented on every
+  // failed password or MFA check, reset on success. lockedUntil is set
+  // once failedLoginAttempts crosses the threshold.
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+
   expenseRequests ExpenseRequest[] @relation("SubmitterRequests")
   reviewActions   ReviewAction[]   @relation("ReviewerActions")
   notifications   Notification[]
   auditsReceived  UserAudit[]      @relation("UserAuditTarget")
   auditsPerformed UserAudit[]      @relation("UserAuditActor")
   accountRequestsReviewed AccountRequest[] @relation("AccountRequestReviewer")
+  mfaBackupCodes      MfaBackupCode[]
+  authEvents          AuthAudit[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -150,4 +169,81 @@ model AccountRequest {
   reviewedBy User? @relation("AccountRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@map("account_requests")
+}
+
+
+// One-time-use TOTP recovery codes, generated once at MFA enrollment and
+// shown to the user exactly once. Each is stored as a bcrypt hash (same
+// primitive as passwords, since these ARE effectively single-use passwords)
+// and consumed (usedAt set) the first time it's redeemed -- never deleted,
+// so "was this code already used" stays answerable for audit purposes.
+model MfaBackupCode {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  codeHash  String    @map("code_hash")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mfa_backup_codes")
+  @@index([userId])
+}
+
+// Single-use, time-limited password reset tokens (src/app/reset-password).
+// The token itself is only ever emailed to the user; the database stores a
+// SHA-256 hash of it, the same "never persist the verifier in a form that
+// grants access if the DB leaks" pattern used for session/API tokens
+// generally -- a DB dump alone can't be used to reset anyone's password.
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  usedAt     DateTime? @map("used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+  @@index([userId])
+}
+
+enum AuthEventType {
+  login_success
+  login_failure
+  login_locked_out
+  account_locked
+  account_unlocked
+  mfa_success
+  mfa_failure
+  mfa_enabled
+  mfa_disabled
+  password_reset_requested
+  password_reset_completed
+}
+
+// Authentication event log -- distinct from UserAudit (which is
+// admin-initiated account management). This records every login attempt,
+// MFA check, lockout, and password-reset event, whether or not it
+// succeeded and whether or not it even matched a real account (userId is
+// nullable so an attempt against a nonexistent email is still logged for
+// IP-based analysis, without ever creating a phantom User row).
+model AuthAudit {
+  id        String        @id @default(cuid())
+  userId    String?       @map("user_id")
+  email     String?
+  event     AuthEventType
+  ip        String?
+  userAgent String?       @map("user_agent")
+  detail    String?
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("auth_audits")
+  @@index([userId])
+  @@index([email])
+  @@index([ip, createdAt])
+  @@index([event, createdAt])
 }
