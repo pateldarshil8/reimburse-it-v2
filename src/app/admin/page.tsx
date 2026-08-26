@@ -75,11 +75,16 @@ export default async function AdminDashboard({
       <div className="flex gap-1 border-b border-neutral-800">
         {TABS.map((t) => {
           const active = t.key === tab;
-          const count = t.key === "requests" ? pendingRequests.length : users.length;
+          const count =
+            t.key === "requests"
+              ? pendingRequests.length
+              : t.key === "security"
+                ? recentAuthEvents.length
+                : users.length;
           return (
             <Link
               key={t.key}
-              href={t.key === "users" ? "/admin" : "/admin?tab=requests"}
+              href={t.key === "users" ? "/admin" : `/admin?tab=${t.key}`}
               className={`relative -mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors duration-150 ${
                 active
                   ? "border-violet-400 text-violet-400"
