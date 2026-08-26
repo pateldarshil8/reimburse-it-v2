@@ -8,10 +8,11 @@ kept separate from `docs/`, which is reserved for the four CDF submission
 documents (`walkthrough.md`, `architecture.md`, `testing.md`,
 `reflection.md`) and shouldn't contain anything else.
 
-Work was done on the `security-hardening` branch, not `main`, and nothing
-here was deployed to the production Vercel project or its environment
-variables as part of this work -- see "What still needs a decision" at the
-end.
+Work was done on a `security-hardening` branch, then merged into `main`
+and deployed to production, and the corresponding Supabase migration has
+been applied to the live database. One environment variable is still
+outstanding before MFA enrollment will work end-to-end in production --
+see "What still needs a decision" at the end.
 
 ---
 
@@ -225,18 +226,24 @@ testing for:
 
 ## What still needs a decision (not done automatically)
 
-- **Database migration.** The new tables/columns (`AuthAudit`,
-  `MfaBackupCode`, `PasswordResetToken`, and the new `User` fields) exist
-  in `prisma/schema.prisma` on this branch but have **not** been applied to
-  the production Supabase database. They're additive and backward-compatible
-  (nullable/defaulted, nothing removed), but applying a schema change to the
-  same database the live app uses is a production-adjacent action, so it
-  wasn't done without asking first.
-- **`MFA_ENCRYPTION_KEY`** must be generated and set (in Vercel's
-  environment variables, for production) before MFA enrollment can work at
-  all -- `src/lib/crypto.ts` throws clearly if it's missing rather than
-  silently storing something insecure.
+- **Database migration.** Done. The new tables/columns (`AuthAudit`,
+  `MfaBackupCode`, `PasswordResetToken`, and the new `User` fields) have
+  been applied to the production Supabase database via a migration matching
+  the existing schema's conventions (enum naming, timestamp precision,
+  RLS-enabled-no-explicit-policy), and verified against
+  `information_schema` after applying.
+- **Merging `security-hardening` into `main`** and deploying it. Done --
+  merged and confirmed `READY` on the production Vercel deployment.
+- **`MFA_ENCRYPTION_KEY`** still needs to be generated and set in Vercel's
+  environment variables for production. This is confirmed as the one
+  remaining blocker, not just a theoretical one: live-testing MFA
+  enrollment against production after the merge reproduced the exact
+  expected failure -- `src/lib/crypto.ts` throws
+  `MFA_ENCRYPTION_KEY must be set to use MFA (used to encrypt TOTP secrets
+  at rest)` rather than silently storing something insecure, the
+  transaction rolled back cleanly, and the account was left with MFA still
+  disabled. No MCP/API tool exists to set Vercel environment variables, so
+  this has to be done by hand in the dashboard.
 - **`RESEND_API_KEY` / `EMAIL_FROM`** are optional but required for real
   password-reset emails in production; without them the console-log
-  fallback is what's active.
-- **Merging `security-hardening` into `main`** and deploying it.
+  fallback is what's active. Not yet set.
